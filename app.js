@@ -42,9 +42,27 @@ async function decryptFile(buf, key) {
   return new Response(ds).arrayBuffer();
 }
 class Locked extends Error { }
+// tiendas: cada una tiene su archivo de ubicaciones; la BBDD de artículos y EAN es común
+const stores = () => (dataInfo && dataInfo.stores) || [];
+let storeId = ''; try { storeId = localStorage.getItem('ubic.store') || ''; } catch { }
+const curStore = () => stores().find(x => x.id === storeId) || stores()[0] || null;
+function fillStores() {
+  const sel = $('storeSel'), cs = curStore();
+  sel.innerHTML = stores().map(x => '<option value="' + esc(x.id) + '">' + esc(x.nombre || x.id) + '</option>').join('');
+  if (cs) { sel.value = cs.id; storeId = cs.id; }
+  setStoreTitle();
+}
+function setStoreTitle() { const cs = curStore(); document.body.dataset.store = cs ? (cs.nombre || cs.id) : ''; }
+$('storeSel').addEventListener('change', async () => {
+  storeId = $('storeSel').value; try { localStorage.setItem('ubic.store', storeId); } catch { }
+  setStoreTitle(); clearInfo(); $('locCard').hidden = true; $('locInput').value = '';
+  await loadUbic();
+});
 async function getText(name) {
   if (!dataKey) throw new Locked();
-  const buf = await fetchEnc(dataInfo && dataInfo.files && dataInfo.files[name] ? dataInfo.files[name] : name);
+  const file = name === 'ubicaciones' ? (curStore() || {}).file : dataInfo && dataInfo.files && dataInfo.files[name];
+  if (!file) throw new Error('sin archivo ' + name);
+  const buf = await fetchEnc(file);
   try { return new TextDecoder().decode(await decryptFile(buf, dataKey)); }
   catch (e) { if (e instanceof DOMException) { lockApp('El código de acceso ha cambiado. Introduce el nuevo.'); throw new Locked(); } throw e; }
 }
@@ -60,6 +78,7 @@ async function tryCode(code) {
   return key;
 }
 async function startData() {
+  fillStores();
   await loadDB();
   loadUbic();
 }
@@ -745,7 +764,7 @@ async function loadUbic() {
   // fecha de la última actualización de ubicaciones (data/ubicaciones-info.json)
   const st = $('ubicState');
   if (!ubicIdx) { st.textContent = 'Ubicaciones: pendiente de cargar'; return; }
-  st.textContent = 'Última actualización ubicaciones: ' + (fmtDate(dataInfo && dataInfo.actualizado) || 'fecha no indicada');
+  st.textContent = 'Última actualización ubicaciones: ' + (fmtDate(curStore() && curStore().actualizado) || 'fecha no indicada');
 }
 // ---- búsqueda por descripción ----
 let descIdx = null;     // [{ ln, hit, txt }] artículos con ubicación
@@ -951,7 +970,7 @@ function show(name, push) {
   $('screenInfo').hidden = name !== 'info';
   $('backBtn').hidden = name === 'home';
   setTimeout(setTopH, 0);
-  $('title').textContent = TITLES[name];
+  $('title').innerHTML = esc(TITLES[name]) + ((name === 'info' || name === 'loc') && document.body.dataset.store ? '<small class="storetag">' + esc(document.body.dataset.store) + '</small>' : '');
   document.body.className = 'on-' + name;
   if (push) history.pushState({ s: name }, '', '#' + name);
   if (name === 'ubicar') render();
