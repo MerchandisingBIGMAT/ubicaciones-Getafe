@@ -970,7 +970,7 @@ function show(name, push) {
   $('screenInfo').hidden = name !== 'info';
   $('backBtn').hidden = name === 'home';
   setTimeout(setTopH, 0);
-  $('title').innerHTML = esc(TITLES[name]) + ((name === 'info' || name === 'loc') && document.body.dataset.store ? '<small class="storetag">' + esc(document.body.dataset.store) + '</small>' : '');
+  $('title').textContent = TITLES[name];
   document.body.className = 'on-' + name;
   if (push) history.pushState({ s: name }, '', '#' + name);
   if (name === 'ubicar') render();
