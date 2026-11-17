@@ -26,13 +26,17 @@
 <section id="home" class="screen">
   <div class="wrap">
     <p class="welcome">¿Qué quieres hacer?</p>
+    <button id="goInfo" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.6v.01"/></svg>
+      <span><b>Info artículo</b><small>Escanea o busca un artículo y consulta su código, descripción y ubicación</small></span>
+    </button>
+    <button id="goLoc" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span><b>Ubicaciones</b><small>Busca por EAN, LN, descripción o ubicación (ej. GG0102)</small></span>
+    </button>
     <button id="goUbicar" class="bigbtn" type="button">
       <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
       <span><b>Ubicar</b><small>Registra la ubicación de los productos escaneando el EAN</small></span>
-    </button>
-    <button id="goInfo" class="bigbtn" type="button">
-      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.6v.01"/></svg>
-      <span><b>Info ubicaciones</b><small>Escanea un producto y consulta dónde está en la tienda</small></span>
     </button>
     <p id="dbstate" class="dbline dbstate">Cargando BBDD…</p>
     <p id="ubicState" class="dbline">Ubicaciones: cargando…</p>
@@ -134,7 +138,7 @@
   </section>
 
   <form id="infoForm" class="card manual" autocomplete="off">
-    <input id="infoInput" inputmode="text" autocapitalize="characters" placeholder="EAN, código LN o descripción (ej. martillo wall 18v)" autocomplete="off">
+    <input id="infoInput" inputmode="text" autocapitalize="characters" placeholder="EAN, LN o descripción" autocomplete="off">
     <button type="submit">Buscar</button>
   </form>
   </div>
@@ -150,6 +154,37 @@
   <section id="histCard" class="card list" hidden>
     <div class="listhead"><h2>Últimas consultas</h2></div>
     <ul id="infoHist"></ul>
+  </section>
+</main>
+</section>
+
+<section id="screenLoc" class="screen" hidden>
+<main class="wrap">
+  <div class="stick">
+  <section class="card cam">
+    <div id="camViewL" class="camview" hidden>
+      <video id="videoL" playsinline muted></video>
+      <div class="reticle"></div>
+      <button id="ocrBtnL" class="torch ocr" type="button">Texto: no</button>
+      <button id="torchBtnL" class="torch" type="button" hidden>Linterna</button>
+    </div>
+    <div id="scanResultL" class="scanresult" hidden></div>
+    <button id="scanBtnL" class="scan" type="button">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M15 8v8M18 8v8"/></svg>
+      <span id="scanLabelL">Activar cámara</span>
+    </button>
+  </section>
+
+  <form id="locForm" class="card manual" autocomplete="off">
+    <input id="locInput" inputmode="text" autocapitalize="characters" placeholder="EAN, LN, descripción o ubicación" autocomplete="off">
+    <button type="submit">Buscar</button>
+  </form>
+  </div>
+
+  <section id="locCard" class="card list" hidden>
+    <div class="listhead"><h2 id="locTitle">Resultados</h2></div>
+    <ul id="locList"></ul>
+    <button id="locMore" type="button" class="ghost" hidden>Mostrar más</button>
   </section>
 </main>
 </section>

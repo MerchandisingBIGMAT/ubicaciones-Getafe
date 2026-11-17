@@ -17,6 +17,7 @@ function save() {
 }
 const pad2 = v => String(v).replace(/\D/g, '').slice(0, 2).padStart(2, '0');
 const key = ean => ean.replace(/^0+/, '');
+const lnFmt = a => /^\d+$/.test(String(a)) ? String(a).padStart(8, '0') : String(a || '—');   // código LN siempre a 8 dígitos
 
 // ---------- Acceso y datos cifrados ----------
 // Los datos del repositorio están cifrados (AES-GCM, clave derivada del código de acceso con PBKDF2). Sin el código no se pueden leer.
@@ -724,7 +725,7 @@ const scU = makeScanner({
   }
 });
 
-// ---------- Info ubicaciones ----------
+// ---------- Info artículo ----------
 let ubicIdx = null;            // LN (sin ceros) -> [ubicaciones]
 async function loadUbic() {
   try {
@@ -736,7 +737,7 @@ async function loadUbic() {
       if (!ln || !ub) continue;
       const arr = idx.get(ln) || []; if (!arr.some(x => x.u === ub)) arr.push({ u: ub, s: sel }); idx.set(ln, arr);
     }
-    ubicIdx = idx;
+    ubicIdx = idx; descIdx = null; locRows = null;
   } catch { ubicIdx = null; }
   const n = $('infoNote');
   n.hidden = !!ubicIdx;
@@ -782,7 +783,7 @@ function renderSearch(q) {
   res.slice(0, MAXRES).forEach(e => {
     const ubs = ubicIdx.get(e.ln) || [];
     const li = document.createElement('li');
-    li.innerHTML = '<div class="pos">' + esc(e.hit.art || e.ln) + '<small>LN</small></div><div><div class="d">' + esc(e.hit.desc || '') + '</div><div class="m">' + esc(ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</div></div><div></div>';
+    li.innerHTML = '<div class="pos">' + esc(lnFmt(e.hit.art || e.ln)) + '<small>LN</small></div><div><div class="d">' + esc(e.hit.desc || '') + '</div><div class="m">' + esc(ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</div></div><div></div>';
     li.onclick = () => { const o = { clean: e.hit.art, hit: e.hit, ubs, ean: e.hit.ean }; renderInfo(o); card.hidden = true; window.scrollTo({ top: 0, behavior: 'smooth' }); };
     ul.appendChild(li);
   });
@@ -799,12 +800,13 @@ function renderInfo(o) {
   }
   const h = o.hit;
   let ubs;
-  if (o.ubs.length) ubs = o.ubs.map(x => '<span class="chip">' + esc(x.u) + (x.s ? '<small>' + esc(x.s) + '</small>' : '') + '</span>').join('');
+  if (o.ubs.length) ubs = o.ubs.map(x => '<span class="chip">' + esc(x.u) + '</span>').join('');
   else ubs = '<p class="none">' + (ubicIdx ? 'Sin ubicación en el archivo' : 'Archivo de ubicaciones sin cargar') + '</p>';
   const ean = o.ean || h.ean;
-  card.innerHTML = '<div class="ln"><small>Código LN</small><b>' + esc(h.art || '—') + '</b></div>' +
+  const sels = [...new Set(o.ubs.map(x => x.s).filter(Boolean))];
+  card.innerHTML = '<div class="ln"><div><small>Código LN</small><b>' + esc(lnFmt(h.art)) + '</b></div>' + (sels.length ? '<div class="sel">' + esc(sels.join(' · ')) + '</div>' : '') + '</div>' +
     '<div class="desc">' + esc(h.desc || '(sin descripción)') + '</div>' +
-    (() => { const all = (eansByArt.get(h.art) || []).filter(x => key(x) !== key(ean || '')); const list = (ean ? [ean] : []).concat(all); return list.length ? '<div class="ean">' + (list.length > 1 ? 'EAN ' : 'EAN ') + list.map(esc).join(' · ') + '</div>' : '<div class="ean"></div>'; })() +
+    (() => { const all = (eansByArt.get(h.art) || []).filter(x => key(x) !== key(ean || '')); const list = (ean ? [ean] : []).concat(all); return list.length ? '<div class="ean">EAN ' + list.map(esc).join(' · ') + '</div>' : '<div class="ean"></div>'; })() +
     '<div class="ubs"><h3>' + (o.ubs.length > 1 ? 'Ubicaciones' : 'Ubicación') + '</h3>' + ubs + '</div>';
 }
 function renderHist() {
@@ -812,7 +814,7 @@ function renderHist() {
   infoHist.forEach(o => {
     const li = document.createElement('li');
     li.className = o.hit ? '' : 'nf';
-    li.innerHTML = '<div class="pos">' + esc(o.hit ? (o.hit.art || '—') : '?') + '<small>LN</small></div><div><div class="d">' + esc(o.hit ? (o.hit.desc || '(sin descripción)') : 'NO ENCONTRADO') + '</div><div class="m">' + esc(o.hit ? (o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') || 'sin ubicación') : o.clean) + '</div></div><div></div>';
+    li.innerHTML = '<div class="pos">' + esc(o.hit ? lnFmt(o.hit.art) : '?') + '<small>LN</small></div><div><div class="d">' + esc(o.hit ? (o.hit.desc || '(sin descripción)') : 'NO ENCONTRADO') + '</div><div class="m">' + esc(o.hit ? (o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') || 'sin ubicación') : o.clean) + '</div></div><div></div>';
     li.onclick = () => { renderInfo(o); window.scrollTo({ top: 0, behavior: 'smooth' }); };
     ul.appendChild(li);
   });
@@ -838,8 +840,8 @@ const scI = makeScanner({
     const r = infoLookup(code, false);
     if (!r) return;
     const { status, o } = r;
-    if (status === 'ok') setResult('LN ' + esc(o.hit.art) + '<small>' + esc(o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</small>', 'ok');
-    else if (status === 'dup') setResult('LN ' + esc(o.hit.art) + '<small>Sin ubicación en el archivo</small>', 'dup');
+    if (status === 'ok') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>' + esc(o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</small>', 'ok');
+    else if (status === 'dup') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>Sin ubicación en el archivo</small>', 'dup');
     else setResult('NO ENCONTRADO<small>' + esc(code) + '</small>', 'nf');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -864,13 +866,80 @@ $('infoInput').addEventListener('input', () => {
   }, 250);
 });
 
+
+// ---------- Ubicaciones: buscar por EAN, LN, descripción o ubicación ----------
+let locRows = null;     // [{ u, s, ln }] todas las ubicaciones del archivo
+function buildLocRows() {
+  locRows = [];
+  if (!ubicIdx) return;
+  for (const [ln, arr] of ubicIdx) for (const x of arr) locRows.push({ u: x.u, s: x.s, ln });
+  locRows.sort((a, b) => a.u < b.u ? -1 : a.u > b.u ? 1 : 0);
+}
+const LOCPAGE = 100;
+let locRes = [], locShown = 0;
+const locTxt = ubs => ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') || 'sin ubicación';
+function locEntry(ln, ubs) { return { ln, hit: findArt(ln), ubs: ubs || ubicIdx.get(ln) || [] }; }
+/** Devuelve { res, title }: por código (EAN/LN), por ubicación (prefijo: GG01, GG0102…) o por descripción. */
+function locSearch(raw) {
+  const v = raw.trim(), compact = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!v || !ubicIdx) return { res: [], title: '' };
+  if (!/\s/.test(v) && /^\d+$/.test(compact)) {          // número: EAN o LN
+    const { hit } = resolve(compact, false);
+    const res = hit ? [locEntry(hit.art, hit.art && ubicIdx.get(hit.art))] : [];
+    return { res, title: res.length ? 'Artículo encontrado' : 'No encontrado', code: true };
+  }
+  if (!/\s/.test(v) && compact.length >= 2 && /^[A-Z]/.test(compact)) {      // ubicación: se busca por el principio del código
+    if (!locRows) buildLocRows();
+    const by = new Map();
+    for (const r of locRows) if (r.u.startsWith(compact)) { const e = by.get(r.ln) || { ln: r.ln, hit: null, ubs: [] }; e.ubs.push({ u: r.u, s: r.s }); by.set(r.ln, e); }
+    if (by.size) {
+      const res = [...by.values()]; res.forEach(e => e.hit = findArt(e.ln));
+      return { res, title: res.length + (res.length === 1 ? ' artículo en ' : ' artículos en ') + compact };
+    }
+  }
+  const res = descSearch(v).map(e => locEntry(e.ln));     // descripción
+  return { res, title: res.length ? res.length + (res.length === 1 ? ' resultado' : ' resultados') : 'Sin resultados' };
+}
+function drawLoc(first) {
+  const ul = $('locList'); if (first) ul.innerHTML = '';
+  locRes.slice(first ? 0 : locShown, locShown = Math.min(locRes.length, (first ? 0 : locShown) + LOCPAGE)).forEach(e => {
+    const li = document.createElement('li');
+    li.innerHTML = '<div class="pos">' + esc(lnFmt(e.ln)) + '</div><div><div class="d">' + esc((e.hit && e.hit.desc) || '(sin descripción)') + '</div><div class="m">' + esc(locTxt(e.ubs)) + '</div></div><div></div>';
+    ul.appendChild(li);
+  });
+  $('locMore').hidden = locShown >= locRes.length;
+  $('locMore').textContent = 'Mostrar más (' + (locRes.length - locShown) + ')';
+}
+function showLoc(raw) {
+  const { res, title } = locSearch(raw);
+  locRes = res; locShown = 0;
+  $('locCard').hidden = !title;
+  $('locTitle').textContent = title;
+  drawLoc(true);
+  return res;
+}
+$('locMore').onclick = () => drawLoc(false);
+$('locForm').addEventListener('submit', e => { e.preventDefault(); showLoc($('locInput').value); $('locInput').blur(); });
+let locT;
+$('locInput').addEventListener('input', () => { clearTimeout(locT); locT = setTimeout(() => { const v = $('locInput').value.trim(); if (v.length >= 2) showLoc(v); else $('locCard').hidden = true; }, 250); });
+const scL = makeScanner({
+  video: 'videoL', view: 'camViewL', result: 'scanResultL', btn: 'scanBtnL', label: 'scanLabelL', torch: 'torchBtnL', ocr: 'ocrBtnL',
+  onCode(code, setResult) {
+    const res = showLoc(code), e = res[0];
+    if (!e) { feedback('nf'); setResult('NO ENCONTRADO<small>' + esc(code) + '</small>', 'nf'); return; }
+    feedback(e.ubs.length ? 'ok' : 'dup');
+    setResult('LN ' + esc(lnFmt(e.ln)) + '<small>' + esc(locTxt(e.ubs)) + '</small>', e.ubs.length ? 'ok' : 'dup');
+  }
+});
+
 // ---------- Navegación ----------
 // altura de la cabecera para que la zona fija (cámara/buscador) quede justo debajo
 const setTopH = () => document.documentElement.style.setProperty('--topH', (document.querySelector('.top')?.offsetHeight || 64) + 'px');
 setTopH(); addEventListener('resize', setTopH); addEventListener('orientationchange', setTopH);
-const TITLES = { home: 'Control de ubicaciones', ubicar: 'Ubicar', info: 'Info ubicaciones' };
+const TITLES = { home: 'Control de ubicaciones', ubicar: 'Ubicar', info: 'Info artículo', loc: 'Ubicaciones' };
 function show(name, push) {
-  scU.stop(); scI.stop();
+  scU.stop(); scI.stop(); scL.stop();
+  $('screenLoc').hidden = name !== 'loc';
   $('home').hidden = name !== 'home';
   $('screenUbicar').hidden = name !== 'ubicar';
   $('screenInfo').hidden = name !== 'info';
@@ -884,9 +953,10 @@ function show(name, push) {
 }
 $('goUbicar').onclick = () => show('ubicar', true);
 $('goInfo').onclick = () => show('info', true);
+$('goLoc').onclick = () => show('loc', true);
 $('backBtn').onclick = () => { if (history.state && history.state.s && history.state.s !== 'home') history.back(); else show('home', false); };
 window.addEventListener('popstate', e => show((e.state && e.state.s) || 'home', false));
-document.addEventListener('visibilitychange', () => { if (document.hidden) { scU.stop(); scI.stop(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { scU.stop(); scI.stop(); scL.stop(); } });
 
 // ---------- Arranque ----------
 history.replaceState({ s: 'home' }, '', location.pathname);

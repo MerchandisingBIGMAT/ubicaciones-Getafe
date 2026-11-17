@@ -155,3 +155,10 @@ dialog input.t{text-align:left;font-size:15px;text-transform:none}
 .lockbox button:disabled{opacity:.6}
 .lockerr{min-height:1.2em;color:var(--red)!important;font-weight:700}
 .linkbtn{background:none;border:0;color:var(--blue);font:inherit;font-size:13px;text-decoration:underline;padding:6px 0;cursor:pointer}
+
+/* ficha de Info artículo: LN a la izquierda, código de selección a la derecha; ubicaciones más pequeñas */
+.result .ln{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.result .ln .sel{font-size:26px;font-weight:800;letter-spacing:.04em;text-align:right}
+.chip{margin:0 6px 6px 0;padding:3px 10px;font-size:15px;border-width:1.5px;letter-spacing:.03em}
+.chip small{display:none}
+.result .ubs{padding-bottom:8px}
