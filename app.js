@@ -17,6 +17,7 @@ function save() {
 }
 const pad2 = v => String(v).replace(/\D/g, '').slice(0, 2).padStart(2, '0');
 const key = ean => ean.replace(/^0+/, '');
+const fmtDate = t => { const m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
 const lnFmt = a => /^\d+$/.test(String(a)) ? String(a).padStart(8, '0') : String(a || '—');   // código LN siempre a 8 dígitos
 
 // ---------- Acceso y datos cifrados ----------
@@ -115,7 +116,7 @@ async function loadDB() {
       if (e.art) { const l = eansByArt.get(e.art); if (l) l.push(ean); else eansByArt.set(e.art, [ean]); }
     }
     dbReady = true;
-    st.textContent = db.size.toLocaleString('es-ES') + ' EAN';
+    st.textContent = 'Última actualización EAN: ' + (fmtDate(dataInfo && dataInfo.ean) || 'fecha no indicada');
     st.className = 'dbline dbstate ok';
   } catch (e) {
     st.textContent = 'BBDD no disponible (sin conexión)';
@@ -127,7 +128,6 @@ async function loadDB() {
     const idx = [0];
     for (let p = extraText.indexOf('\n'); p >= 0 && p < extraText.length - 1; p = extraText.indexOf('\n', p + 1)) idx.push(p + 1);
     extraIdx = Int32Array.from(idx);
-    st.textContent = db.size.toLocaleString('es-ES') + ' EAN · ' + (artMap.size + extraIdx.length).toLocaleString('es-ES') + ' LN';
   } catch (e) { st.textContent += ' (LN parcial)'; }
 }
 function findExtra(k) {
@@ -745,11 +745,7 @@ async function loadUbic() {
   // fecha de la última actualización de ubicaciones (data/ubicaciones-info.json)
   const st = $('ubicState');
   if (!ubicIdx) { st.textContent = 'Ubicaciones: pendiente de cargar'; return; }
-  let fecha = '';
-  try {
-    { const j = dataInfo || {}; const m = String(j.actualizado || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if (m) fecha = m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : ''); }
-  } catch { }
-  st.textContent = 'Última actualización de ubicaciones: ' + (fecha || 'fecha no indicada') + ' · ' + ubicIdx.size.toLocaleString('es-ES') + ' artículos';
+  st.textContent = 'Última actualización ubicaciones: ' + (fmtDate(dataInfo && dataInfo.actualizado) || 'fecha no indicada');
 }
 // ---- búsqueda por descripción ----
 let descIdx = null;     // [{ ln, hit, txt }] artículos con ubicación
@@ -936,9 +932,19 @@ const scL = makeScanner({
 // altura de la cabecera para que la zona fija (cámara/buscador) quede justo debajo
 const setTopH = () => document.documentElement.style.setProperty('--topH', (document.querySelector('.top')?.offsetHeight || 64) + 'px');
 setTopH(); addEventListener('resize', setTopH); addEventListener('orientationchange', setTopH);
-const TITLES = { home: 'Control de ubicaciones', ubicar: 'Ubicar', info: 'Info artículo', loc: 'Ubicaciones' };
+const TITLES = { home: 'Control de ubicaciones', ubics: 'Ubicaciones', ubicar: 'Editar ubicación', info: 'Artículo', loc: 'Consulta ubicaciones' };
+/** Al salir de Artículo se vacía todo (ficha, búsqueda, historial y campo) para que se entre siempre en blanco. */
+function clearInfo() {
+  infoHist.length = 0; renderHist();
+  for (const id of ['infoCard', 'srchCard', 'histCard', 'scanResultI']) $(id).hidden = true;
+  $('srchList').innerHTML = ''; $('infoInput').value = '';
+}
+let curScreen = 'home';
 function show(name, push) {
   scU.stop(); scI.stop(); scL.stop();
+  if (curScreen === 'info' && name !== 'info') clearInfo();
+  curScreen = name;
+  $('screenUbics').hidden = name !== 'ubics';
   $('screenLoc').hidden = name !== 'loc';
   $('home').hidden = name !== 'home';
   $('screenUbicar').hidden = name !== 'ubicar';
@@ -953,6 +959,7 @@ function show(name, push) {
 }
 $('goUbicar').onclick = () => show('ubicar', true);
 $('goInfo').onclick = () => show('info', true);
+$('goUbics').onclick = () => show('ubics', true);
 $('goLoc').onclick = () => show('loc', true);
 $('backBtn').onclick = () => { if (history.state && history.state.s && history.state.s !== 'home') history.back(); else show('home', false); };
 window.addEventListener('popstate', e => show((e.state && e.state.s) || 'home', false));

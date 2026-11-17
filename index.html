@@ -28,15 +28,11 @@
     <p class="welcome">¿Qué quieres hacer?</p>
     <button id="goInfo" class="bigbtn" type="button">
       <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.6v.01"/></svg>
-      <span><b>Info artículo</b><small>Escanea o busca un artículo y consulta su código, descripción y ubicación</small></span>
+      <span><b>Artículo</b><small>Escanea o busca un artículo y consulta su código, descripción y ubicación</small></span>
     </button>
-    <button id="goLoc" class="bigbtn" type="button">
-      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <span><b>Ubicaciones</b><small>Busca por EAN, LN, descripción o ubicación (ej. GG0102)</small></span>
-    </button>
-    <button id="goUbicar" class="bigbtn" type="button">
+    <button id="goUbics" class="bigbtn" type="button">
       <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
-      <span><b>Ubicar</b><small>Registra la ubicación de los productos escaneando el EAN</small></span>
+      <span><b>Ubicaciones</b><small>Consultar y editar las ubicaciones</small></span>
     </button>
     <p id="dbstate" class="dbline dbstate">Cargando BBDD…</p>
     <p id="ubicState" class="dbline">Ubicaciones: cargando…</p>
@@ -45,6 +41,18 @@
 </section>
 
 <!-- ===== UBICAR ===== -->
+<section id="screenUbics" class="screen" hidden>
+  <div class="wrap">
+    <button id="goLoc" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span><b>Consulta ubicaciones</b><small>Busca por EAN, LN, descripción o ubicación (ej. GG0102)</small></span>
+    </button>
+    <button id="goUbicar" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      <span><b>Editar ubicación</b><small>Registra la ubicación de los productos escaneando el EAN</small></span>
+    </button>
+  </div>
+</section>
 <section id="screenUbicar" class="screen" hidden>
 <main class="wrap">
   <div class="stick">
