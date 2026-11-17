@@ -774,31 +774,45 @@ function buildDescIdx() {
   if (!ubicIdx) return;
   for (const [ln] of ubicIdx) { const hit = findArt(ln); if (hit) descIdx.push({ ln, hit, txt: norm(hit.desc || '') }); }
 }
-/** Todas las palabras escritas deben aparecer en la descripción (en cualquier orden); gana la que las trae más pronto y más corta. */
-function descSearch(q) {
-  if (!descIdx) buildDescIdx();
+/** Catálogo completo (todos los artículos de la BBDD, tengan o no ubicación en la tienda), para buscar por descripción en Artículo. */
+let catIdx = null;
+function buildCatIdx() {
+  catIdx = [];
+  for (const [ln, e] of artMap) catIdx.push({ ln, hit: e, txt: norm(e.desc || '') });
+  for (let i = 0; i < (extraIdx ? extraIdx.length : 0); i++) {
+    const s0 = extraIdx[i], t = extraText.indexOf('\t', s0); let e = extraText.indexOf('\n', t); if (e < 0) e = extraText.length;
+    const ln = extraText.slice(s0, t), desc = extraText.slice(t + 1, e);
+    if (!artMap.has(ln)) catIdx.push({ ln, hit: { ean: '', art: ln, desc }, txt: norm(desc) });
+  }
+}
+/** Todas las palabras escritas deben aparecer en la descripción (en cualquier orden); gana la que las trae más pronto y más corta.
+ *  all = true: busca en todo el catálogo y pone primero los que tienen ubicación en la tienda. */
+function descSearch(q, all) {
+  if (all) { if (!catIdx) buildCatIdx(); } else if (!descIdx) buildDescIdx();
   const words = norm(q).split(/[^a-z0-9ñ.,/+]+/).filter(Boolean);
   if (!words.length) return [];
   const out = [];
-  for (const e of descIdx) {
+  for (const e of (all ? catIdx : descIdx)) {
     let ok = true, pos = 0;
     for (const w of words) { const i = e.txt.indexOf(w); if (i < 0) { ok = false; break; } pos += i; }
-    if (ok) out.push({ e, score: pos + e.txt.length * 0.15 });
+    if (ok) out.push({ e, score: pos + e.txt.length * 0.15 - (all && ubicIdx && ubicIdx.has(e.ln) ? 100000 : 0) });
   }
   out.sort((a, b) => a.score - b.score);
   return out.map(x => x.e);
 }
-const MAXRES = 60;
-function renderSearch(q) {
-  const res = descSearch(q), card = $('srchCard'), ul = $('srchList');
+const MAXRES = 100;
+const SIN_UB = 'PEZ';      // marca de los artículos sin ubicación en la tienda (donde iría el código de selección)
+async function renderSearch(q) {
+  if (!catIdx) { $('srchCard').hidden = false; $('srchTitle').textContent = 'Buscando…'; await new Promise(r => setTimeout(r, 30)); }
+  const res = descSearch(q, true), card = $('srchCard'), ul = $('srchList');
   ul.innerHTML = '';
   $('infoCard').hidden = true;
   card.hidden = false;
   $('srchTitle').textContent = res.length ? res.length + (res.length === 1 ? ' resultado' : ' resultados') + (res.length > MAXRES ? ' (se muestran ' + MAXRES + '; añade palabras para afinar)' : '') : 'Sin resultados';
   res.slice(0, MAXRES).forEach(e => {
-    const ubs = ubicIdx.get(e.ln) || [];
+    const ubs = (ubicIdx && ubicIdx.get(e.ln)) || [];
     const li = document.createElement('li');
-    li.innerHTML = '<div class="pos">' + esc(lnFmt(e.hit.art || e.ln)) + '<small>LN</small></div><div><div class="d">' + esc(e.hit.desc || '') + '</div><div class="m">' + esc(ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</div></div><div></div>';
+    li.innerHTML = '<div class="pos">' + esc(lnFmt(e.hit.art || e.ln)) + '<small>LN</small></div><div><div class="d">' + esc(e.hit.desc || '') + '</div><div class="m">' + esc(ubs.length ? ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') : SIN_UB) + '</div></div><div></div>';
     li.onclick = () => { const o = { clean: e.hit.art, hit: e.hit, ubs, ean: e.hit.ean }; renderInfo(o); card.hidden = true; window.scrollTo({ top: 0, behavior: 'smooth' }); };
     ul.appendChild(li);
   });
@@ -816,10 +830,10 @@ function renderInfo(o) {
   const h = o.hit;
   let ubs;
   if (o.ubs.length) ubs = o.ubs.map(x => '<span class="chip">' + esc(x.u) + '</span>').join('');
-  else ubs = '<p class="none">' + (ubicIdx ? 'Sin ubicación en el archivo' : 'Archivo de ubicaciones sin cargar') + '</p>';
+  else ubs = '<p class="none">' + (ubicIdx ? 'Sin ubicación en la tienda' : 'Archivo de ubicaciones sin cargar') + '</p>';
   const ean = o.ean || h.ean;
   const sels = [...new Set(o.ubs.map(x => x.s).filter(Boolean))];
-  card.innerHTML = '<div class="ln"><div><small>Código LN</small><b>' + esc(lnFmt(h.art)) + '</b></div>' + (sels.length ? '<div class="sel">' + esc(sels.join(' · ')) + '</div>' : '') + '</div>' +
+  card.innerHTML = '<div class="ln"><div><small>Código LN</small><b>' + esc(lnFmt(h.art)) + '</b></div>' + (sels.length || ubicIdx ? '<div class="sel">' + esc(sels.length ? sels.join(' · ') : SIN_UB) + '</div>' : '') + '</div>' +
     '<div class="desc">' + esc(h.desc || '(sin descripción)') + '</div>' +
     (() => { const all = (eansByArt.get(h.art) || []).filter(x => key(x) !== key(ean || '')); const list = (ean ? [ean] : []).concat(all); return list.length ? '<div class="ean">EAN ' + list.map(esc).join(' · ') + '</div>' : '<div class="ean"></div>'; })() +
     '<div class="ubs"><h3>' + (o.ubs.length > 1 ? 'Ubicaciones' : 'Ubicación') + '</h3>' + ubs + '</div>';
@@ -829,7 +843,7 @@ function renderHist() {
   infoHist.forEach(o => {
     const li = document.createElement('li');
     li.className = o.hit ? '' : 'nf';
-    li.innerHTML = '<div class="pos">' + esc(o.hit ? lnFmt(o.hit.art) : '?') + '<small>LN</small></div><div><div class="d">' + esc(o.hit ? (o.hit.desc || '(sin descripción)') : 'NO ENCONTRADO') + '</div><div class="m">' + esc(o.hit ? (o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') || 'sin ubicación') : o.clean) + '</div></div><div></div>';
+    li.innerHTML = '<div class="pos">' + esc(o.hit ? lnFmt(o.hit.art) : '?') + '<small>LN</small></div><div><div class="d">' + esc(o.hit ? (o.hit.desc || '(sin descripción)') : 'NO ENCONTRADO') + '</div><div class="m">' + esc(o.hit ? (o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ') || SIN_UB) : o.clean) + '</div></div><div></div>';
     li.onclick = () => { renderInfo(o); window.scrollTo({ top: 0, behavior: 'smooth' }); };
     ul.appendChild(li);
   });
@@ -856,7 +870,7 @@ const scI = makeScanner({
     if (!r) return;
     const { status, o } = r;
     if (status === 'ok') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>' + esc(o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</small>', 'ok');
-    else if (status === 'dup') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>Sin ubicación en el archivo</small>', 'dup');
+    else if (status === 'dup') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>' + SIN_UB + ' · sin ubicación en la tienda</small>', 'dup');
     else setResult('NO ENCONTRADO<small>' + esc(code) + '</small>', 'nf');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -866,9 +880,9 @@ $('infoForm').addEventListener('submit', e => {
   const v = $('infoInput').value.trim();
   if (!v) return;
   $('srchCard').hidden = true;
-  if (looksLikeText(v) && ubicIdx) { renderSearch(v); return; }
+  if (looksLikeText(v) && dbReady) { renderSearch(v); return; }
   const r = infoLookup(v, false);
-  if (r && r.status === 'nf' && /[A-Za-z]{3,}/.test(v) && ubicIdx) { infoHist.shift(); renderHist(); renderSearch(v); return; }
+  if (r && r.status === 'nf' && /[A-Za-z]{3,}/.test(v) && dbReady) { infoHist.shift(); renderHist(); renderSearch(v); return; }
   $('infoInput').value = '';
 });
 // al escribir palabras se van mostrando los artículos que coinciden
@@ -877,7 +891,7 @@ $('infoInput').addEventListener('input', () => {
   clearTimeout(srchT);
   srchT = setTimeout(() => {
     const v = $('infoInput').value.trim();
-    if (v.length >= 3 && looksLikeText(v) && ubicIdx) renderSearch(v); else $('srchCard').hidden = true;
+    if (v.length >= 3 && looksLikeText(v) && dbReady) renderSearch(v); else $('srchCard').hidden = true;
   }, 250);
 });
 
