@@ -21,7 +21,7 @@ const key = ean => ean.replace(/^0+/, '');
 // ---------- Acceso y datos cifrados ----------
 // Los datos del repositorio están cifrados (AES-GCM, clave derivada del código de acceso con PBKDF2). Sin el código no se pueden leer.
 const KEYSTORE = 'ubic.k';
-let dataKey = null;
+let dataKey = null, dataInfo = null;   // dataInfo: { actualizado, files: nombre -> archivo cifrado }
 const b64 = u8 => btoa(String.fromCharCode(...u8)), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 const normCode = c => String(c).toUpperCase().replace(/[^A-Z0-9]/g, '');
 async function importKey(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', true, ['decrypt']); }
@@ -30,7 +30,7 @@ async function deriveKey(code, salt) {
   return importKey(new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 600000, hash: 'SHA-256' }, base, 256)));
 }
 async function fetchEnc(name, fresh) {
-  const r = await fetch('data/' + name + '.enc', fresh ? { cache: 'no-cache' } : undefined);
+  const r = await fetch('data/' + name + (name.endsWith('.enc') ? '' : '.enc'), fresh ? { cache: 'no-cache' } : undefined);
   if (!r.ok) throw new Error('http ' + r.status);
   return new Uint8Array(await r.arrayBuffer());
 }
@@ -42,7 +42,7 @@ async function decryptFile(buf, key) {
 class Locked extends Error { }
 async function getText(name) {
   if (!dataKey) throw new Locked();
-  const buf = await fetchEnc(name);
+  const buf = await fetchEnc(dataInfo && dataInfo.files && dataInfo.files[name] ? dataInfo.files[name] : name);
   try { return new TextDecoder().decode(await decryptFile(buf, dataKey)); }
   catch (e) { if (e instanceof DOMException) { lockApp('El código de acceso ha cambiado. Introduce el nuevo.'); throw new Locked(); } throw e; }
 }
@@ -54,7 +54,7 @@ function lockApp(msg) {
 async function tryCode(code) {
   const buf = await fetchEnc('ubicaciones-info', true);
   const key = await deriveKey(code, buf.subarray(4, 20));
-  await decryptFile(buf, key);       // lanza error si el código no es el bueno
+  dataInfo = JSON.parse(new TextDecoder().decode(await decryptFile(buf, key)));   // lanza error si el código no es el bueno
   return key;
 }
 async function startData() {
@@ -64,7 +64,11 @@ async function startData() {
 async function boot() {
   let saved = null; try { saved = localStorage.getItem(KEYSTORE); } catch { }
   if (saved) {
-    try { dataKey = await importKey(unb64(saved)); await startData(); return; } catch { }
+    try {
+      dataKey = await importKey(unb64(saved));
+      dataInfo = JSON.parse(new TextDecoder().decode(await decryptFile(await fetchEnc('ubicaciones-info', true), dataKey)));
+      await startData(); return;
+    } catch (e) { if (!(e instanceof DOMException)) { try { await startData(); return; } catch { } } }
   }
   lockApp('');
 }
@@ -742,7 +746,7 @@ async function loadUbic() {
   if (!ubicIdx) { st.textContent = 'Ubicaciones: pendiente de cargar'; return; }
   let fecha = '';
   try {
-    { const j = JSON.parse(await getText('ubicaciones-info')); const m = String(j.actualizado || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if (m) fecha = m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : ''); }
+    { const j = dataInfo || {}; const m = String(j.actualizado || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if (m) fecha = m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : ''); }
   } catch { }
   st.textContent = 'Última actualización de ubicaciones: ' + (fecha || 'fecha no indicada') + ' · ' + ubicIdx.size.toLocaleString('es-ES') + ' artículos';
 }
