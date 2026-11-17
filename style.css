@@ -51,13 +51,11 @@ input:focus{outline:none;border-color:var(--blue)}
 .scan{display:flex;align-items:center;justify-content:center;gap:10px;border:0;border-bottom:4px solid var(--red);border-radius:var(--r);background:var(--blue);color:#fff;font:inherit;font-size:17px;font-weight:800;text-transform:uppercase;padding:14px}
 .scan:active{background:var(--blue-d)}
 .scan.on{background:#fff;color:var(--red);border:2px solid var(--red);border-bottom-width:4px}
-.camview{position:relative;width:100%;height:130px;border-radius:var(--r);overflow:hidden;background:#000}
+.camview{position:relative;width:100%;height:min(62vw,260px);border-radius:var(--r);overflow:hidden;background:#000}
 .camview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .reticle{position:absolute;left:8%;right:8%;top:15%;height:70%;border:3px solid rgba(255,255,255,.9);border-radius:8px;box-shadow:0 0 0 100vmax rgba(0,0,0,.4)}
 .reticle::after{content:"";position:absolute;left:6%;right:6%;top:50%;height:2px;background:var(--red);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.25}}
-.camview{transition:height .2s}
-.camview.big{height:min(62vw,260px)}
 .torch.ocr{left:8px;right:auto}
 .torch.ocr.on{background:var(--red)}
 .torch{position:absolute;top:8px;right:8px;border:0;border-radius:var(--r);padding:8px 12px;font:inherit;font-weight:700;background:#0008;color:#fff;font-size:13px}
