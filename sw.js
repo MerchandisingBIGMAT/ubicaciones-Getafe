@@ -1,4 +1,4 @@
-const SHELL = 'shell-v20', DATA = 'data-v3';
+const SHELL = 'shell-v21', DATA = 'data-v3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'lib/xlsx.mini.min.js', 'lib/zxing.min.js', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/bigmat-logo.png', 'fonts/montserrat-latin-600-normal.woff2', 'fonts/montserrat-latin-700-normal.woff2', 'fonts/montserrat-latin-800-normal.woff2', 'fonts/montserrat-latin-800-italic.woff2'];
 
 self.addEventListener('install', e => {
