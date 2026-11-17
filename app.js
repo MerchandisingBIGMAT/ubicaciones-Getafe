@@ -801,7 +801,7 @@ function descSearch(q, all) {
   return out.map(x => x.e);
 }
 const MAXRES = 100;
-const SIN_UB = 'PEZ';      // marca de los artículos sin ubicación en la tienda (donde iría el código de selección)
+const SIN_UB = 'sin ubicación';      // artículos que no tienen ubicación en la tienda
 async function renderSearch(q) {
   if (!catIdx) { $('srchCard').hidden = false; $('srchTitle').textContent = 'Buscando…'; await new Promise(r => setTimeout(r, 30)); }
   const res = descSearch(q, true), card = $('srchCard'), ul = $('srchList');
@@ -833,7 +833,7 @@ function renderInfo(o) {
   else ubs = '<p class="none">' + (ubicIdx ? 'Sin ubicación en la tienda' : 'Archivo de ubicaciones sin cargar') + '</p>';
   const ean = o.ean || h.ean;
   const sels = [...new Set(o.ubs.map(x => x.s).filter(Boolean))];
-  card.innerHTML = '<div class="ln"><div><small>Código LN</small><b>' + esc(lnFmt(h.art)) + '</b></div>' + (sels.length || ubicIdx ? '<div class="sel">' + esc(sels.length ? sels.join(' · ') : SIN_UB) + '</div>' : '') + '</div>' +
+  card.innerHTML = '<div class="ln"><div><small>Código LN</small><b>' + esc(lnFmt(h.art)) + '</b></div>' + (sels.length ? '<div class="sel">' + esc(sels.join(' · ')) + '</div>' : '') + '</div>' +
     '<div class="desc">' + esc(h.desc || '(sin descripción)') + '</div>' +
     (() => { const all = (eansByArt.get(h.art) || []).filter(x => key(x) !== key(ean || '')); const list = (ean ? [ean] : []).concat(all); return list.length ? '<div class="ean">EAN ' + list.map(esc).join(' · ') + '</div>' : '<div class="ean"></div>'; })() +
     '<div class="ubs"><h3>' + (o.ubs.length > 1 ? 'Ubicaciones' : 'Ubicación') + '</h3>' + ubs + '</div>';
@@ -870,7 +870,7 @@ const scI = makeScanner({
     if (!r) return;
     const { status, o } = r;
     if (status === 'ok') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>' + esc(o.ubs.map(x => x.u + (x.s ? ' (' + x.s + ')' : '')).join(' · ')) + '</small>', 'ok');
-    else if (status === 'dup') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>' + SIN_UB + ' · sin ubicación en la tienda</small>', 'dup');
+    else if (status === 'dup') setResult('LN ' + esc(lnFmt(o.hit.art)) + '<small>Sin ubicación en la tienda</small>', 'dup');
     else setResult('NO ENCONTRADO<small>' + esc(code) + '</small>', 'nf');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
