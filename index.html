@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f498b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ubicaciones">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<title>Control de Ubicaciones · BigMat</title>
+</head>
+<body class="on-home">
+<header class="top">
+  <button id="backBtn" class="back" type="button" aria-label="Volver al inicio" hidden>‹</button>
+  <div class="ttl">
+    <h1 id="title">Control de ubicaciones</h1>
+  </div>
+  <div class="brand"><img src="icons/bigmat-logo.png" alt="BigMat"></div>
+</header>
+
+<!-- ===== INICIO ===== -->
+<section id="home" class="screen">
+  <div class="wrap">
+    <p class="welcome">¿Qué quieres hacer?</p>
+    <button id="goUbicar" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      <span><b>Ubicar</b><small>Registra la ubicación de los productos escaneando el EAN</small></span>
+    </button>
+    <button id="goInfo" class="bigbtn" type="button">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.6v.01"/></svg>
+      <span><b>Info ubicaciones</b><small>Escanea un producto y consulta dónde está en la tienda</small></span>
+    </button>
+    <p id="dbstate" class="dbline dbstate">Cargando BBDD…</p>
+    <p id="ubicState" class="dbline">Ubicaciones: cargando…</p>
+    <button id="lockNow" type="button" class="linkbtn">Bloquear app</button>
+  </div>
+</section>
+
+<!-- ===== UBICAR ===== -->
+<section id="screenUbicar" class="screen" hidden>
+<main class="wrap">
+  <div class="stick">
+  <section class="card loc">
+    <div class="field">
+      <label for="pasillo">Pasillo</label>
+      <input id="pasillo" maxlength="2" autocapitalize="characters" autocomplete="off" inputmode="text" placeholder="GG">
+    </div>
+    <div class="field">
+      <label>Rack</label>
+      <div class="stepper">
+        <button type="button" data-step="rack" data-d="-1" aria-label="Rack menos">−</button>
+        <input id="rack" inputmode="numeric" maxlength="2" value="01">
+        <button type="button" data-step="rack" data-d="1" aria-label="Rack más">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Nivel</label>
+      <div class="stepper">
+        <button type="button" data-step="nivel" data-d="-1" aria-label="Nivel menos">−</button>
+        <input id="nivel" inputmode="numeric" maxlength="2" value="01">
+        <button type="button" data-step="nivel" data-d="1" aria-label="Nivel más">+</button>
+      </div>
+    </div>
+    <div class="locinfo">
+      Ubicación: <b id="locCode">—</b> · siguiente posición: <b id="nextPos">01</b>
+    </div>
+  </section>
+
+  <section class="card cam">
+    <div id="camView" class="camview" hidden>
+      <video id="video" playsinline muted></video>
+      <div class="reticle"></div>
+      <button id="ocrBtn" class="torch ocr" type="button">Texto: no</button>
+      <button id="torchBtn" class="torch" type="button" hidden>Linterna</button>
+    </div>
+    <div id="scanResult" class="scanresult" hidden></div>
+    <button id="scanBtn" class="scan" type="button">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M15 8v8M18 8v8"/></svg>
+      <span id="scanLabel">Activar cámara</span>
+    </button>
+  </section>
+  </div>
+
+  <form id="manualForm" class="card manual" autocomplete="off">
+    <input id="eanInput" inputmode="text" autocapitalize="characters" placeholder="o escribe EAN / código LN" autocomplete="off">
+    <button type="submit">Añadir</button>
+  </form>
+
+  <section class="card list">
+    <div class="listhead">
+      <h2>Registros <span id="count" class="badge">0</span></h2>
+      <button id="undoBtn" type="button" class="ghost">Deshacer último</button>
+    </div>
+    <div class="seg">
+      <button type="button" data-view="recent" class="on">Recientes</button>
+      <button type="button" data-view="loc">Esta ubicación</button>
+    </div>
+    <div id="locTools" class="loctools" hidden>
+      <span>Usa ▲ ▼ para ordenar</span>
+      <button id="renumBtn" type="button" class="ghost">Renumerar</button>
+    </div>
+    <p class="hint">Toca un registro para editarlo.</p>
+    <ul id="records"></ul>
+    <p id="empty" class="empty">Aún no hay registros. Elige pasillo, rack y nivel y escanea un EAN.</p>
+  </section>
+</main>
+
+<footer>
+  <button id="exportBtn" type="button" class="primary">Exportar XLSX</button>
+  <button id="resetBtn" type="button" class="danger">Reiniciar</button>
+</footer>
+</section>
+
+<!-- ===== INFO UBICACIONES ===== -->
+<section id="screenInfo" class="screen" hidden>
+<main class="wrap">
+  <div class="stick">
+  <section class="card cam">
+    <div id="camViewI" class="camview" hidden>
+      <video id="videoI" playsinline muted></video>
+      <div class="reticle"></div>
+      <button id="ocrBtnI" class="torch ocr" type="button">Texto: no</button>
+      <button id="torchBtnI" class="torch" type="button" hidden>Linterna</button>
+    </div>
+    <div id="scanResultI" class="scanresult" hidden></div>
+    <button id="scanBtnI" class="scan" type="button">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M15 8v8M18 8v8"/></svg>
+      <span id="scanLabelI">Activar cámara</span>
+    </button>
+  </section>
+
+  <form id="infoForm" class="card manual" autocomplete="off">
+    <input id="infoInput" inputmode="text" autocapitalize="characters" placeholder="EAN, código LN o descripción (ej. martillo wall 18v)" autocomplete="off">
+    <button type="submit">Buscar</button>
+  </form>
+  </div>
+
+  <section id="srchCard" class="card list" hidden>
+    <div class="listhead"><h2 id="srchTitle">Resultados</h2></div>
+    <ul id="srchList"></ul>
+  </section>
+
+  <section id="infoCard" class="card result" hidden></section>
+  <p id="infoNote" class="note" hidden></p>
+
+  <section id="histCard" class="card list" hidden>
+    <div class="listhead"><h2>Últimas consultas</h2></div>
+    <ul id="infoHist"></ul>
+  </section>
+</main>
+</section>
+
+<div id="lock" class="lock" hidden>
+  <form id="lockForm" class="lockbox" autocomplete="off">
+    <img src="icons/bigmat-logo.png" alt="BigMat" class="lockLogo">
+    <h2>Control de ubicaciones</h2>
+    <p>Introduce el código de acceso de la tienda.</p>
+    <input id="lockCode" type="password" autocapitalize="characters" autocomplete="off" placeholder="Código de acceso">
+    <button id="lockBtn" type="submit">Entrar</button>
+    <p id="lockErr" class="lockerr"></p>
+  </form>
+</div>
+
+<dialog id="editDlg">
+  <form id="editForm" autocomplete="off">
+    <h3>Editar registro</h3>
+    <div class="grid3">
+      <label>Pasillo<input id="ePasillo" maxlength="2" autocapitalize="characters"></label>
+      <label>Rack<input id="eRack" inputmode="numeric" maxlength="2"></label>
+      <label>Nivel<input id="eNivel" inputmode="numeric" maxlength="2"></label>
+    </div>
+    <div class="grid2">
+      <label>Posición<input id="ePos" inputmode="numeric" maxlength="2"></label>
+      <label>EAN / código LN<input id="eEan" inputmode="text" class="t"></label>
+    </div>
+    <label>Descripción<input id="eDesc" class="t" placeholder="(se rellena sola si el EAN está en la BBDD)"></label>
+    <p id="eNote" class="enote"></p>
+    <div class="dbtns">
+      <button type="button" id="eDel" class="danger">Borrar</button>
+      <button type="button" id="eCancel" class="ghost">Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="lib/xlsx.mini.min.js"></script>
+<script src="lib/zxing.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
