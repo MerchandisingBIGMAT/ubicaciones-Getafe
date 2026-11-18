@@ -20,6 +20,10 @@ const key = ean => ean.replace(/^0+/, '');
 const fmtDate = t => { const m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
 const lnFmt = a => /^\d+$/.test(String(a)) ? String(a).padStart(8, '0') : String(a || '—');   // código LN siempre a 8 dígitos
 
+// Versión: mesdía.nº de modificación del día (p. ej. 1118.01 = 18 de noviembre, primera modificación)
+const APP_VERSION = '1118.01';
+$('appVer').textContent = 'v' + APP_VERSION;
+
 // ---------- Acceso y datos cifrados ----------
 // Los datos del repositorio están cifrados (AES-GCM, clave derivada del código de acceso con PBKDF2). Sin el código no se pueden leer.
 const KEYSTORE = 'ubic.k';
