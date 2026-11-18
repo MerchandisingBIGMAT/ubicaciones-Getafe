@@ -1,4 +1,4 @@
-# Control de Ubicaciones - Getafe
+# BigMat Gestión
 
 App web (PWA) para registrar la ubicación de productos en el almacén escaneando el EAN con la cámara del móvil.
 

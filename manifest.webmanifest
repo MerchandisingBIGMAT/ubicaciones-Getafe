@@ -1,6 +1,6 @@
 {
-  "name": "Control de Ubicaciones BigMat",
-  "short_name": "Ubicaciones",
+  "name": "BigMat Gestión",
+  "short_name": "BigMat Gestión",
   "description": "Registra la ubicación de productos escaneando el EAN con la cámara",
   "start_url": "./index.html",
   "scope": "./",

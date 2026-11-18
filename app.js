@@ -965,7 +965,7 @@ const scL = makeScanner({
 // altura de la cabecera para que la zona fija (cámara/buscador) quede justo debajo
 const setTopH = () => document.documentElement.style.setProperty('--topH', (document.querySelector('.top')?.offsetHeight || 64) + 'px');
 setTopH(); addEventListener('resize', setTopH); addEventListener('orientationchange', setTopH);
-const TITLES = { home: 'Control de ubicaciones', ubics: 'Ubicaciones', ubicar: 'Editar ubicación', info: 'Artículo', loc: 'Consulta ubicaciones' };
+const TITLES = { home: 'BigMat Gestión', ubics: 'Ubicaciones', ubicar: 'Editar ubicación', info: 'Artículo', loc: 'Consulta ubicaciones' };
 /** Al salir de Artículo se vacía todo (ficha, búsqueda, historial y campo) para que se entre siempre en blanco. */
 function clearInfo() {
   infoHist.length = 0; renderHist();
